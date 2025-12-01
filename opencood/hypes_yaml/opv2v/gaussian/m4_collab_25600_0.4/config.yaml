@@ -1,0 +1,317 @@
+name: m4_collab_25600_0.4
+root_dir: "dataset/OPV2V/train"
+validate_dir: "dataset/OPV2V/validate"
+test_dir: "dataset/OPV2V/validate"
+
+yaml_parsers:
+  m4:
+    "load_rgb_params"
+train_params:
+  batch_size: &batch_size 1
+  grad_accumulation: 8
+  grad_max_norm: 35
+  epoches: &epoches 30
+  eval_freq: 1
+  save_freq: 1
+  max_cav: 7
+  visible: true
+
+comm_range: 70
+input_source: ['camera', 'occ_raw', 'occ_20_collab']
+label_type: 'camera'
+cav_lidar_range: &cav_lidar [-20, -20, -2.3, 20, 20, 0.9]
+
+
+heter:
+  assignment_path: "opencood/logs/heter_modality_assign/opv2v_4modality.json"
+  ego_modality: &ego_modality "m4"
+  mapping_dict:
+    m1: m4
+    m2: m4
+    m3: m4
+    m4: m4
+  modality_setting:
+    m4:
+      sensor_type: &sensor_type_m1 'camera'
+
+      data_aug_conf: &data_aug_conf_m1
+        resize_lim: [1.0, 1.0]
+        final_dim: [576, 800]
+        rot_lim: [0.0, 0.0]
+        H: 600
+        W: 800
+        rand_flip: true
+        bot_pct_lim: [0.0, 0.0]
+        cams: ['camera0', 'camera1', 'camera2', 'camera3']
+        Ncams: 4
+
+preprocess:
+  # options: BasePreprocessor, VoxelPreprocessor, BevPreprocessor
+  core_method: 'SpVoxelPreprocessor'
+  args:
+    voxel_size: [0.4, 0.4, 4] # useful
+    max_points_per_voxel: 1 # useless
+    max_voxel_train: 1 # useless
+    max_voxel_test: 1 # useless
+  # lidar range for each individual cav.
+  cav_lidar_range: *cav_lidar
+
+
+postprocess:
+  core_method: 'OccPostprocessor' # OccPostprocessor VoxelPostprocessor, BevPostprocessor supported
+  grid_size: [100, 100, 8]
+  gt_range: *cav_lidar
+  anchor_args:
+    cav_lidar_range: *cav_lidar
+  order: 'hwl' # hwl or lwh
+  max_num: 100 # maximum number of objects in a single frame. use this number to make sure different frames has the same dimension in the same batch
+  nms_thresh: 0.15
+
+
+fusion:
+  core_method: 'intermediateheter'
+  dataset: 'opv2v'
+  args:
+    proj_first: false
+    grid_conf: None # place-holder
+    data_aug_conf: None # place-holder
+
+
+# model related
+model:
+  core_method: gaussian_collab
+  args:
+    supervise_single: false
+    m4:
+      embed_dims: &embed_dims 128
+      num_groups: &num_groups 4
+      num_decoder: &num_decoder 4
+      use_deformable_func: &use_deformable_func true
+      num_levels: &num_levels 4
+      drop_out: &drop_out 0.1
+      scale_range: &scale_range [0.01, 1.8]
+      num_gaussian: &num_gaussian 25600
+
+      include_opa: &include_opa true
+      load_from: &load_from ckpts/r101_dcn_fcos3d_pretrain.pth
+      semantics: &semantics true
+      semantic_dim: &semantic_dim 13
+
+      backbone_args:
+        img_backbone_out_indices: [0, 1, 2, 3]
+
+        img_backbone:
+          type: ResNet
+          depth: 101
+          num_stages: 4
+          out_indices: [0, 1, 2, 3]
+          frozen_stages: 1
+          norm_cfg:
+            type: BN2d
+            requires_grad: false
+          norm_eval: true
+          style: caffe
+          with_cp: true
+          dcn:
+            type: DCNv2
+            deform_groups: 1
+            fallback_on_stride: false
+          stage_with_dcn: [false, false, true, true]
+
+        img_neck:
+          type: FPN
+          num_outs: *num_levels
+          start_level: 1
+          out_channels: *embed_dims
+          add_extra_convs: on_output
+          relu_before_extra_convs: true
+          in_channels: [256, 512, 1024, 2048]
+
+      lifter_args:
+        type: v1
+        num_anchor: *num_gaussian
+        embed_dims: *embed_dims
+        anchor_grad: true
+        feat_grad: false
+        semantics: *semantics
+        semantic_dim: *semantic_dim
+        include_opa: *include_opa
+        pts_init: false
+
+      encoder_args:
+        anchor_encoder:
+          embed_dims: *embed_dims
+          include_opa: *include_opa
+          semantics: *semantics
+          semantic_dim: *semantic_dim
+
+        norm_layer:
+          normalized_shape: *embed_dims
+
+        ffn:
+          in_channels: *embed_dims
+          pre_norm: false
+          embed_dims: *embed_dims
+          feedforward_channels: 4
+          num_fcs: 2
+          ffn_drop: 0.1
+          add_identity: false
+
+        deformable_model:
+          embed_dims: *embed_dims
+          num_groups: *num_groups
+          num_levels: *num_levels
+          num_cams: 4
+          proj_drop: 0.0
+          attn_drop: 0.15
+          use_deformable_func: *use_deformable_func
+          use_camera_embed: true
+          residual_mode: none
+          kps_generator:
+            embed_dims: *embed_dims
+            num_learnable_pts: 6
+            fix_scale:
+              - [0, 0, 0]
+              - [0.45, 0, 0]
+              - [-0.45, 0, 0]
+              - [0, 0.45, 0]
+              - [0, -0.45, 0]
+              - [0, 0, 0.45]
+              - [0, 0, -0.45]
+            learnable_fixed_scale: 6.0
+            pc_range: *cav_lidar
+            scale_range: *scale_range
+
+        refine_layer:
+          embed_dims: *embed_dims
+          pc_range: *cav_lidar
+          scale_range: *scale_range
+          unit_xyz: [4.0, 4.0, 1.0]
+          semantics: *semantics
+          semantic_dim: *semantic_dim
+          include_opa: *include_opa
+          semantics_activation: softplus
+
+        spconv_layer:
+          in_channels: *embed_dims
+          embed_channels: *embed_dims
+          pc_range: *cav_lidar
+          grid_size: [1.0, 1.0, 1.0]
+          use_out_proj: true
+          kernel_size: 5
+          use_multi_layer: true
+
+        num_decoder: *num_decoder
+
+        operation_order:
+          - identity
+          - deformable
+          - add
+          - norm
+
+          - identity
+          - ffn
+          - add
+          - norm
+
+          - identity
+          - spconv
+          - add
+          - norm
+
+          - identity
+          - ffn
+          - add
+          - norm
+
+          - refine
+
+      learned_refiner: true
+      refiner_args:
+        embed_dims: 128
+        ego_gaussian_num: *num_gaussian
+        pc_range: *cav_lidar
+        nei_radius: 0.4
+        # max_num_neighbors: 64
+        scale_range: *scale_range
+        unit_xyz:
+          - 2.0
+          - 2.0
+          - 0.5
+        semantic_dim: 13
+        semantic_input: hardmax
+        semantic_strategy: confv1
+        rel: less
+        use_attention: false
+
+      head_method: occ_head
+      occ_args:
+        empty_label: 13
+        num_classes: 14
+        apply_loss_type: 'random_1'
+        use_localaggprob: false
+        use_localaggprob_fast: false
+        combine_geosem: false
+
+        empty_args:
+          mean: [0, 0, -0.7]
+          scale: [50, 50, 4]
+        with_empty: True
+
+        cuda_kwargs:
+          scale_multiplier: 1
+          H: 100
+          W: 100
+          D: 8
+          pc_min: [ -20, -20, -2.3 ]
+          grid_size: 0.4
+
+
+loss:
+  core_method: occupancy_loss
+  args:
+    empty_label: 13
+    num_classes: 14
+    use_focal_loss: false
+    use_dice_loss: false
+    balance_cls_weight: true
+    multi_loss_weights:
+        loss_voxel_ce_weight: 10.0
+        loss_voxel_lovasz_weight: 1.0
+    use_sem_geo_scal_loss: false
+    use_lovasz_loss: true
+    lovasz_ignore: 13
+    manual_class_weight:
+      - 0.9622
+      - 1.0117
+      - 1.0253
+      - 0.8993
+      - 1.1496
+      - 0.8413
+      - 0.9092
+      - 0.9600
+      - 0.9374
+      - 1.0025
+      - 1.0226
+      - 1.4045
+      - 1.3744
+      - 0.5
+    ignore_empty: false
+    lovasz_use_softmax: true
+
+optimizer:
+  core_method: AdamW
+  lr: 2e-4
+  args:
+    eps: 1e-8
+    weight_decay: 1e-2
+  paramwise_cfg:
+    custom_keys:
+      img_backbone:
+        lr_mult: 0.1
+
+lr_scheduler:
+  core_method: cosineannealwarm #step, multistep and Exponential, cosineannealwarm support
+  epoches: *epoches
+  min_lr_ratio: 0.1
+  warmup_lr_init: 1e-6
