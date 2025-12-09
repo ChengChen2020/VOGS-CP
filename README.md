@@ -2,6 +2,8 @@
 
 [AAAI 2026 Oral] Vision-Only Gaussian Splatting for Collaborative Semantic Occupancy Prediction
 
+[Paper](https://arxiv.org/abs/2508.10936) | [Project page](https://chengchen2020.github.io/VOGS-CP/)
+
 ## Prepare Datasets
 
 - OPV2V: Download from [HERE](https://mobility-lab.seas.ucla.edu/opv2v/).
