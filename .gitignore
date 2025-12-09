@@ -180,10 +180,9 @@ debug/
 papers/
 pretrained/
 submission/
-visualization/
+visualizations/
 
 .DS_Store
-*.png
 *.tar
 *.zip
 *.pth

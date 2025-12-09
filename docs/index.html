@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+
+
+<!-- === Header Starts === -->
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+  <title>DepthGAN</title>
+
+  <link href="./assets/bootstrap.min.css" rel="stylesheet">
+  <link href="./assets/font.css" rel="stylesheet" type="text/css">
+  <link href="./assets/style.css" rel="stylesheet" type="text/css">
+</head>
+<!-- === Header Ends === -->
+
+
+<body>
+
+
+<!-- === Home Section Starts === -->
+<div class="section">
+  <!-- === Title Starts === -->
+  <div class="header">
+    <div class="title", style="padding-top: 25pt;">
+      Vision-Only Gaussian Splatting for Collaborative Semantic Occupancy Prediction
+    </div>
+    <h2 style="font-size:20px;text-align:center;">AAAI 2026 (Oral)</h2>
+  </div>
+  <!-- === Title Ends === -->
+  <div class="author">
+    <a href="https://chengchen2020.github.io/" target="_blank">Cheng Chen</a><sup>1</sup>&nbsp;&nbsp;&nbsp;&nbsp;
+    Hao Huang</a><sup>2</sup>&nbsp;&nbsp;&nbsp;&nbsp;
+    <a href="https://www.saurabhbagchi.us/" target="_blank">Saurabh Bagchi</a><sup>1</sup>
+
+  </div>
+  <div class="institution">
+    <sup>1</sup>Purdue University &nbsp;&nbsp;&nbsp;&nbsp;
+    <sup>2</sup>New York University Abu Dhabi
+  </div>
+  <div class="link">
+    [<a href="https://arxiv.org/abs/2508.10936" target="_blank">Paper</a>]&nbsp;&nbsp;
+    [<a href="https://github.com/ChengChen2020/VOGS-CP" target="_blank">Code</a>]
+<!--     &nbsp;&nbsp;
+    [<a href="https://youtu.be/RMmIso5Oxno" target="_blank">Demo</a>] -->
+  </div>
+  <div class="teaser">
+    <img src="./assets/teaser.png" width="60%">
+  </div>
+  <div class="body">
+    <b>Figure:</b> Comparison of shared representations. BEV and tri-plane methods transmit implicit planar features as messages, losing geometric detail and complicating alignment. We instead share explicit, interpretable 3D Gaussian primitives that preserve 3D structure and enable straightforward cross-agent fusion.
+  </div>
+</div>
+<!-- === Home Section Ends === -->
+
+
+<!-- === Overview Section Starts === -->
+<div class="section">
+  <div class="title">Overview</div>
+  <div class="body">
+Collaborative perception enables connected vehicles to share information, overcoming occlusions and extending the limited sensing range inherent in single-agent (non-collaborative) systems. Existing vision-only methods for 3D semantic occupancy prediction commonly rely on dense 3D voxels, which incur high communication costs, or 2D planar features, which require accurate depth estimation or additional supervision, limiting their applicability to collaborative scenarios. To address these challenges, we propose the first approach leveraging <b>sparse 3D semantic Gaussians for collaborative 3D semantic occupancy prediction</b>. By sharing and fusing intermediate Gaussian primitives, our method provides three benefits: a neighborhood-based cross-agent fusion that removes duplicates and suppresses noisy or inconsistent Gaussians; a joint encoding of geometry and semantics in each primitive, which reduces reliance on depth supervision and allows simple rigid alignment; and sparse, object-centric messages that preserve structural information while reducing communication volume. Extensive experiments demonstrate that our approach outperforms single-agent perception and baseline collaborative methods by +8.42 and +3.28 points in mIoU, and +5.11 and +22.41 points in IoU, respectively. When further reducing the number of transmitted Gaussians, our method still achieves a +1.9 improvement in mIoU, using only 34.6% communication volume, highlighting robust performance under limited communication budgets.
+  </div>
+</div>
+<!-- === Overview Section Ends === -->
+
+
+<!-- === Framework Section Starts === -->
+<div class="section">
+  <div class="title">Framework</div>
+  <div class="body">
+
+    <table width="100%" style="margin: 20pt 0; text-align: center;">
+      <tr>
+        <td><img src="./assets/VOGS-CP.png" width="90%"></td>
+      </tr>
+    </table>
+
+    <b>Figure:</b> Overview of the proposed pipeline. An initial set of randomly initialized 3D Gaussians is refined by an Image-to-Gaussian module that attends to multi-scale image features, producing single-agent Gaussians. Neighbor agents (top and bottom) are rigidly transformed into the ego frame (middle) and culled to the ego region of interest; the blue and yellow dashed box marks the Gaussians that lie within the ego region of interest and are packaged and transmitted to the ego. A cross-agent Gaussian fusion module aggregates these with the ego set. The fused Gaussians are then rendered to semantic occupancy via Gaussian-to-voxel splatting. For clarity, the figure shows the zero-shot variant.
+
+
+  </div>
+</div>
+<!-- === Framework Section Ends === -->
+
+<!-- === Demo Section Starts === -->
+<div class="section">
+  <div class="title">Visualization & Demo</div>
+  <div class="body">
+
+    <table width="100%" style="margin: 20pt 0; text-align: center;">
+      <tr>
+        <td><img src="./assets/vis.png" width="90%"></td>
+      </tr>
+    </table>
+
+    <b>Figure:</b> Qualitative comparison of ego-only ground truth, collaborative ground truth, predicted Gaussians, predicted occupancy, and the <i>zero-shot</i> variant. Red boxes highlight occluded object structure captured by Gaussian primitives in collaborative setting. The <i>zero-shot</i> variant can look plausible but often shows clustered redundancy and noise; black boxes mark cases where the neighborhood-based fusion suppresses redundancy and improves consistency. An opacity threshold is applied for display, so the predicted Gaussians are not exhaustive.
+    <br><br>
+    We also include a demo video, which demonstrates the continuous driving scene semantic occupancy prediction achieved by our method.
+
+
+    <table width="100%" style="margin: 20pt 0; text-align: center;">
+      <tr>
+        <td><img src="./assets/demo.gif" width="90%"></td>
+      </tr>
+    </table>
+
+  </div>
+</div>
+<!-- === Demo Section Ends === -->
+
+
+<!-- === Reference Section Starts === -->
+<div class="section">
+  <div class="bibtex">BibTeX</div>
+<pre>
+  @article{chen2025vision,
+    title={Vision-Only Gaussian Splatting for Collaborative Semantic Occupancy Prediction},
+    author={Chen, Cheng and Huang, Hao and Bagchi, Saurabh},
+    journal={arXiv preprint arXiv:2508.10936},
+    year={2025}
+  }
+
+</pre>
+
+
+<div class="ref">Related Work</div>
+
+<div class="citation">
+  <div class="image"><img src="./assets/stamp.png"></div>
+  <div class="comment">
+    <i>Gao, Xiangbo, Runsheng Xu, Jiachen Li, Ziran Wang, Zhiwen Fan, Zhengzhong Tu.</i>
+    <a href="https://arxiv.org/abs/2501.18616" target="_blank">
+      STAMP: Scalable Task And Model-agnostic Collaborative Perception.</a>
+      ICLR, 2025.<br>
+    <b>Comment:</b>
+    Proposes lightweight adapter-reverter pairs to transform Bird’s Eye View (BEV)
+features between agent-specific domains and a shared protocol domain
+  </div>
+</div>
+
+<div class="citation">
+  <div class="image"><img src="./assets/gsformer.png"></div>
+  <div class="comment">
+    <i>Yuanhui Huang, Wenzhao Zheng, Yunpeng Zhang, Jie Zhou, Jiwen Lu.</i>
+    <a href="https://arxiv.org/abs/2405.17429" target="_blank">
+      GaussianFormer: Scene as Gaussians for Vision-Based 3D Semantic Occupancy Prediction.
+      </a>ECCV, 2024.<br>
+    <b>Comment:</b>
+    Proposes an object-centric representation to describe 3D scenes with sparse 3D semantic Gaussians where each Gaussian represents a flexible region of interest and its semantic features.
+  </div>
+</div>
+
+<div class="citation">
+  <div class="image"><img src="./assets/COHFF.png"></div>
+  <div class="comment">
+    <i>Rui Song, Chenwei Liang, Hu Cao, Zhiran Yan, Walter Zimmer, Markus Gross, Andreas Festag, Alois Knoll.</i>
+    <a href="https://arxiv.org/abs/2402.07635" target="_blank">
+      Collaborative Semantic Occupancy Prediction with Hybrid Feature Fusion in Connected Automated Vehicles.
+      </a>CVPR, 2024.<br>
+    <b>Comment:</b>
+    Proposes hybrid fusion of (i) semantic and occupancy task features, and (ii) compressed orthogonal attention features shared between vehicles.
+  </div>
+</div>
+
+
+<div class="citation">
+  <div class="image"><img src="./assets/heal.jpg"></div>
+  <div class="comment">
+    <i>Yifan Lu, Yue Hu, Yiqi Zhong, Dequan Wang, Yanfeng Wang, Siheng Chen.</i>
+    <a href="https://arxiv.org/abs/2401.13964" target="_blank">
+      An Extensible Framework for Open Heterogeneous Collaborative Perception.
+      </a>ICLR, 2024.<br>
+    <b>Comment:</b>
+    Proposes HEterogeneous ALliance (HEAL), a novel extensible collaborative perception framework.
+  </div>
+</div>
+
+<!-- === Reference Section Ends === -->
+
+
+</body>
+</html>
